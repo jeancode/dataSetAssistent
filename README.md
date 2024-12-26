@@ -3,6 +3,8 @@
 ## Descripción
 Interfaz de usuario para la creación y descarga de datos de entrenamiento.
 
+![](./Captura.PNG)
+
 ## Funcionalidades
 * Agregar mensajes de texto
 * Descargar datos en formato JSON
