@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Training Data Interface</title>
+  <style>
+    body.dark {
+      background-color: #333;
+      color: #eee;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      padding: 20px;
+      background-color: #fff;
+    }
+    .card.dark {
+      background-color: #444;
+      color: #eee;
+    }
+    .input, .textarea, .button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .input {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .textarea {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      min-height: 100px;
+    }
+    .button {
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: #fff;
+    }
+    .button.outline {
+      background-color: transparent;
+      border: 1px solid #007bff;
+      color: #007bff;
+    }
+    .button.danger {
+      background-color: #dc3545;
+    }
+    .search-bar {
+      display: flex;
+      align-items: center;
+    }
+    .search-bar input {
+      flex-grow: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>Training Data Interface</span>
+          <div class="theme-switcher">
+            <button id="toggle-dark-mode" class="button">🌙</button>
+            <button id="toggle-light-mode" class="button" style="display: none;">🌞</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-content">
+        <div class="input-section">
+          <textarea id="input-text" class="textarea" placeholder="Enter input text..."></textarea>
+          <textarea id="output-text" class="textarea" placeholder="Enter output text..."></textarea>
+          <button id="add-item" class="button">Add Item</button>
+        </div>
+        <div class="search-bar">
+          <input type="text" id="search" class="input" placeholder="Search...">
+        </div>
+        <div id="items-container"></div>
+      </div>
+      <div class="card-footer">
+        <div>Total Items: <span id="item-count">0</span></div>
+        <button id="download-json" class="button">Download JSON</button>
+        <button id="load-json" class="button">Load JSON</button>
+        <input id="json-upload" type="file" accept=".json" style="display: none;">
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      let items = [];
+      let darkMode = false;
+      let editIndex = -1;
+
+      $('#toggle-dark-mode').click(function() {
+        $('body').addClass('dark');
+        $('.card').addClass('dark');
+        $('#toggle-dark-mode').hide();
+        $('#toggle-light-mode').show();
+        darkMode = true;
+      });
+
+      $('#toggle-light-mode').click(function() {
+        $('body').removeClass('dark');
+        $('.card').removeClass('dark');
+        $('#toggle-light-mode').hide();
+        $('#toggle-dark-mode').show();
+        darkMode = false;
+      });
+
+      $('#add-item').click(function() {
+        const input = $('#input-text').val();
+        const output = $('#output-text').val();
+        if (input.trim() && output.trim()) {
+          if (editIndex === -1) {
+            const newItem = {
+              id: Date.now().toString(),
+              input,
+              output
+            };
+            items.push(newItem);
+          } else {
+            items[editIndex] = {
+              ...items[editIndex],
+              input,
+              output
+            };
+            editIndex = -1;
+          }
+          renderItems();
+          $('#input-text').val('');
+          $('#output-text').val('');
+          $('#add-item').text('Add Item');
+        }
+      });
+
+      $(document).on('click', '.edit-button', function() {
+        const id = $(this).data('id');
+        editIndex = items.findIndex(item => item.id === id);
+        if (editIndex !== -1) {
+          $('#input-text').val(items[editIndex].input);
+          $('#output-text').val(items[editIndex].output);
+          $('#add-item').text('Update Item');
+        }
+      });
+
+      $(document).on('click', '.delete-button', function() {
+        const id = $(this).data('id');
+        items = items.filter(item => item.id !== id);
+        renderItems();
+      });
+
+      $('#download-json').click(function() {
+        const json = JSON.stringify(items.map(({ input, output }) => ({ input, output })));
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'training_data.json';
+        a.click();
+      });
+
+      $('#load-json').click(function() {
+        $('#json-upload').click();
+      });
+
+      $('#json-upload').change(function(event) {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            try {
+              const json = JSON.parse(e.target.result);
+              items = json.map((item, index) => ({ ...item, id: index.toString() }));
+              renderItems();
+            } catch (error) {
+              console.error('Error parsing JSON:', error);
+            }
+          };
+          reader.readAsText(file);
+        }
+      });
+
+      $('#search').on('input', function() {
+        renderItems();
+      });
+
+      function renderItems() {
+        const searchTerm = $('#search').val().toLowerCase();
+        $('#items-container').empty();
+        items
+          .filter(item => item.input.toLowerCase().includes(searchTerm) || item.output.toLowerCase().includes(searchTerm))
+          .forEach(item => {
+            const card = $(
+              `<div class="card">
+                <div class="card-content">
+                  <div>
+                    <label>Input:</label>
+                    <p>${item.input}</p>
+                  </div>
+                  <div>
+                    <label>Output:</label>
+                    <p>${item.output}</p>
+                  </div>
+                </div>
+                <div class="card-footer">
+                  <button class="button edit-button" data-id="${item.id}">Edit</button>
+                  <button class="button danger delete-button" data-id="${item.id}">Delete</button>
+                </div>
+              </div>`
+            );
+            $('#items-container').append(card);
+          });
+        $('#item-count').text(items.length);
+      }
+    });
+  </script>
+</body>
+</html>

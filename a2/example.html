@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat UI</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f0f0;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    body.dark-mode {
+      background-color: #1a1a1a;
+      color: #e0e0e0;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .card {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      margin: 16px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 16px;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    .card.dark-mode {
+      background-color: #333;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .header h2 {
+      font-size: 24px;
+    }
+
+    .header button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .chat-area {
+      flex-grow: 1;
+      overflow-y: auto;
+      margin-bottom: 16px;
+    }
+
+    .message {
+      display: flex;
+      margin-bottom: 12px;
+    }
+
+    .message.user {
+      justify-content: flex-end;
+    }
+
+    .message .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+    }
+
+    .message.user .avatar {
+      margin-left: 8px;
+      margin-right: 0;
+    }
+
+    .message-content {
+      max-width: 60%;
+      padding: 8px;
+      border-radius: 8px;
+      background-color: #e0e0e0;
+      position: relative;
+    }
+
+    .message-content.user {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .message-content.dark-mode {
+      background-color: #555;
+    }
+
+    .message-content.user.dark-mode {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .message .timestamp {
+      font-size: 10px;
+      color: gray;
+    }
+
+    textarea {
+      width: 100%;
+      resize: none;
+      height: 50px;
+      margin-bottom: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    textarea.dark-mode {
+      background-color: #333;
+      color: #e0e0e0;
+      border-color: #555;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .actions button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .actions .icon {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #007bff;
+    }
+
+    .actions .icon.dark-mode {
+      color: #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <div class="header">
+      <h2>Chat</h2>
+      <button id="toggle-dark-mode"><i class="fas fa-moon"></i></button>
+    </div>
+    <div class="chat-area" id="chat-area">
+      <!-- Messages will be appended here -->
+    </div>
+    <textarea id="input-message" placeholder="Type your message here..."></textarea>
+    <div class="actions">
+      <div>
+        <button class="icon"><i class="fas fa-image"></i></button>
+        <button class="icon"><i class="fas fa-paperclip"></i></button>
+      </div>
+      <button id="send-message">Send <i class="fas fa-paper-plane"></i></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    // Check localStorage for dark mode preference
+    if (localStorage.getItem('dark-mode') === 'enabled') {
+      $('body').addClass('dark-mode');
+      $('.card').addClass('dark-mode');
+      $('.message-content').addClass('dark-mode');
+      $('textarea').addClass('dark-mode');
+      $('.icon').addClass('dark-mode');
+      $('#toggle-dark-mode').find('i').removeClass('fa-moon').addClass('fa-sun');
+    }
+
+    function appendMessage(message) {
+      const messageHtml = `
+        <div class="message ${message.sender === 'User' ? 'user' : ''}">
+          <div class="avatar">${message.sender[0]}</div>
+          <div class="message-content ${message.sender === 'User' ? 'user' : ''}">
+            <p>${message.content}</p>
+            <span class="timestamp">${message.timestamp}</span>
+          </div>
+        </div>
+      `;
+      $('#chat-area').append(messageHtml);
+      $('.chat-area').scrollTop($('.chat-area')[0].scrollHeight);
+    }
+
+    // Sample messages
+    const messages = [
+      { id: 1, sender: 'AI', content: 'Hello! How can I assist you today?', timestamp: '10:00 AM' },
+      { id: 2, sender: 'User', content: 'Hi! I have a question about React.', timestamp: '10:01 AM' }
+    ];
+    messages.forEach(appendMessage);
+
+    // Handle sending messages
+    $('#send-message').click(function() {
+      const inputMessage = $('#input-message').val().trim();
+      if (inputMessage) {
+        const newMessage = {
+          id: messages.length + 1,
+          sender: 'User',
+          content: inputMessage,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        messages.push(newMessage);
+        appendMessage(newMessage);
+        $('#input-message').val('');
+      }
+    });
+
+    // Toggle dark mode
+    $('#toggle-dark-mode').click(function() {
+      $('body').toggleClass('dark-mode');
+      $('.card').toggleClass('dark-mode');
+      $('.message-content').toggleClass('dark-mode');
+      $('textarea').toggleClass('dark-mode');
+      $('.icon').toggleClass('dark-mode');
+      const darkModeEnabled = $('body').hasClass('dark-mode');
+      localStorage.setItem('dark-mode', darkModeEnabled ? 'enabled' : 'disabled');
+      $(this).find('i').toggleClass('fa-moon fa-sun');
+    });
+  });
+</script>
+</body>
+</html>
